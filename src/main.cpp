@@ -1,9 +1,10 @@
 #include <Arduino.h>
 
+#include <OLED_I2C.h>
 #include <Keypad.h>
 #include <ESP32Servo.h>
 #include <ezButton.h>
-#include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
 #include "mylib.h"
 
 #define BUTTON_PIN 25       // PIN DEL BOTON
@@ -17,18 +18,19 @@
 #define OLED_RESET -1       // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+OLED display (21,22);
+//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 ezButton button(BUTTON_PIN); // Asignar BUTTON_PIN
 Servo myservo;               // Crear objeto myservo
 // VARIABLES//
-int angle = 180; // Angulo inicial del servo
-char Str[4] = {' ', ' ', ' ', ' '};
+uint8_t angle = 180; // Angulo inicial del servo
+char Str[5] = {' ', ' ', ' ', ' ','\0'}; //pass que varia
 int character = 0;     // Variable de orden del dígito
 int activated = 0;     // Estado de la cerradura -> 2=abierto, 0=cerrado
-char pass[5] = "1234"; // Añadido tamaño 5 para incluir el carácter nulo '\0'
-const char *ssid = "LUIS";
+char pass[4] = {'1','2','3','4'}; // pass fija
 unsigned long lightStartTime = 0; // tiempo donde se encendio el led
-
+//fuentes---------------------------------
+extern uint8_t SmallFont[];
 // -------Configuración del Keypad---------
 const uint8_t ROWS = 4; // define numero de filas
 const uint8_t COLS = 4; // define numero de filas
@@ -56,21 +58,25 @@ void setup()
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   // bucle inicio del display
-  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
+  /*if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
   {
     Serial.println(F("SSD1306 allocation failed"));
     for (;;)
       ;
-  }
-  display.clearDisplay();
-  display.setTextSize(1);
+  }*/
+  display.begin();
+  display.setBrightness(207);
+  display.clrScr();
+  display.setFont(SmallFont);
+  display.print("Hola Electronico", CENTER, 0);
+  /*display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(0, 0);
-  display.println("Hola electronico");
+  display.println("Hola electronico");*/
   delay(200);
-  display.display();
+  display.update();
   delay(2000);
-  display.clearDisplay();
+  display.clrScr();
   myservo.write(angle); // Asigna el ángulo inicial a myservo
 }
 
@@ -78,9 +84,10 @@ void loop()
 {
   if (activated == 0)
   {
-    display.setCursor(0, 0);
-    display.println("Ingresa la contrasena");
-    display.display();
+    display.print("interfaz cerrado",0,0);
+    //display.setCursor(0, 0);
+    //display.println("Ingresa la contrasena");
+    display.update();
   }
   button.loop(); // Bucle inicio del botón
   if (button.isPressed())
@@ -92,10 +99,10 @@ void loop()
       angle = 0;
       activated = 2;
       character = 4;
-      Serial.print("Puerta abierta \n");
-      display.clearDisplay();
-      display.println("bienvenido");
-      display.display();
+      //Serial.print("Puerta abierta \n");
+      display.clrScr();
+      display.print("bienvenido",CENTER,0);
+      display.update();
       encender_verde();
       lightStartTime = millis();
       break;
@@ -111,13 +118,13 @@ void loop()
 
       encender_rojo();
       lightStartTime = millis();
-      display.setCursor(0, 50);
-      display.println("Cerrando...");
-      display.display();
+      //display.setCursor(0, 50);
+      display.print("Cerrando...",0,56);
+      display.update();
       delay(500);
-      display.clearDisplay();
-      Serial.print("Puerta cerrada \n");
-      display.clearDisplay();
+      display.clrScr();
+      //Serial.print("Puerta cerrada \n");
+      display.clrScr();
       break;
 
     default:
@@ -126,27 +133,27 @@ void loop()
   }
   myservo.write(angle); // imprimir angulo constantemente en cda cambio
   // PEDIR CONTRASEÑA-KEYPAD OPEN/CLOSE
-  char customKey = customKeypad.getKey(); // Variable de la contraseña
+  char customKey = customKeypad.getKey(); // asignar tecla presionada a la variable customkey
   if (customKey)
   {
     // cerrar o limpiar con tecla "B"
     if (customKey == 'B' && character != 0)
     {
       angle = 180;
-      display.setCursor(0, 50);
+      //display.setCursor(0, 50);
       if (activated == 0)
       {
-      display.println("limpiando...");
+      display.print("limpiando...",0,56);
       }
       else if (activated == 2)
       {
-      display.println("Cerrando...");
+      display.print("Cerrando...",0,56);
       }
       encender_rojo();
       lightStartTime = millis();
-      display.display();
+      display.update();
       delay(500);
-      display.clearDisplay();
+      display.clrScr();
       myservo.write(angle);
       activated = 0;
       character = 0;
@@ -154,8 +161,7 @@ void loop()
       {
         Str[i] = ' ';
       }
-      Serial.print("borrar y cerrar \n");
-
+      //Serial.print("borrar y cerrar \n");
     }
     // Cambiar pass al presionar "C"
     else if (customKey == 'C' && character == 4)
@@ -163,23 +169,23 @@ void loop()
       // Contraseña correcta
       if (Str[0] == pass[0] && Str[1] == pass[1] && Str[2] == pass[2] && Str[3] == pass[3])
       {
-        Serial.print("insertar nueva contraseña\n");
-        char nuevopass[5] = "    "; // Añadido tamaño 5 para incluir el carácter nulo '\0'
+        //Serial.print("insertar nueva contraseña\n");
+        char nuevopass[5] = {' ',' ',' ',' ','\0'}; // Añadido tamaño 5 para incluir el carácter nulo '\0'
         int i = 0;
-        display.clearDisplay();
+        display.clrScr();
         while (i < 5)
         {
           char customKey = customKeypad.getKey();
-          display.setCursor(0, 0);
-          display.println("Ingresa la nueva");
-          display.println("contrasena");
-          display.display();
+          //display.setCursor(0, 0);
+          display.print("Ingresa la nueva contrasena",0,0);
+          //display.println("contrasena");
+          display.update();
           if (customKey)
           {
-            if (customKey == 'B')
+            if (customKey == 'B')//B para volver
             {
               character = 0;
-              display.clearDisplay();
+              display.clrScr();
               for (int i = 0; i < 4; i++)
               {
                 Str[i] = ' ';
@@ -188,37 +194,36 @@ void loop()
               lightStartTime = millis();
               break;
             }
-            // asignar los valores de nuevopass a pass
+            // asignar los valores de nuevopass a pass con tecla A
             else if (customKey == 'A' && i == 4)
             {
-              for (int j = 0; j < 4; j++)
+              for (int j = 0; j < 4; j++)//pasar la pass nueva a pass fija
               {
                 pass[j] = nuevopass[j];
               }
-              pass[4] = '\0'; // Agregar el carácter nulo al final
-              Serial.print("contrasena actualizada\n");
-              display.clearDisplay();
-              display.println("contrasena actualizada");
-              display.display();
+              //Serial.print("contrasena actualizada\n");
+              display.clrScr();
+              display.print("actualizada",CENTER,0);
+              display.update();
               character = 0;
-              for (int i = 0; i < 4; i++)
+              for (int k = 0; k < 4; k++)//borrar array de pass de teclado
               {
-                Str[i] = ' ';
+                Str[k] = ' ';
               }
               encender_verde();
               lightStartTime = millis();
               delay(1000);
-              display.clearDisplay();
+              display.clrScr();
               break;
             }
-            // asignando valores del nuevo pass
+            // asignando valores al array del nuevo pass
             else if (i < 4)
             {
               nuevopass[i] = customKey;
               i++;
-              display.println(nuevopass);
-              display.display();
-              Serial.print(customKey);
+              display.print(nuevopass,0,8);
+              display.update();
+              //Serial.print(customKey);
             }
           }
         }
@@ -232,14 +237,14 @@ void loop()
           Str[i] = ' ';
         }
         activated = 0;
-        Serial.print("contrasena incorrecta, vuelve intentar \n");
-        display.clearDisplay();
-        display.println("contrasena incorrecta, vuelve intentar");
-        display.display();
+        //Serial.print("contrasena incorrecta, vuelve intentar \n");
+        display.clrScr();
+        display.print("vuelve intentar",CENTER,0);
+        display.update();
         encender_rojo();
         lightStartTime = millis();
         delay(1000);
-        display.clearDisplay();
+        display.clrScr();
       }
     }
     // Abrir puerta con tecla "A"
@@ -253,10 +258,10 @@ void loop()
         angle = 0;
         myservo.write(angle);
         activated = 2;
-        Serial.print("contrasena correcta, abierto \n");
-        display.clearDisplay();
-        display.println("contrasena correcta, bienvenido");
-        display.display();
+        //Serial.print("contrasena correcta, abierto \n");
+        display.clrScr();
+        display.print("bienvenido",CENTER,0);
+        display.update();
         encender_verde();
         lightStartTime = millis();
       }
@@ -269,14 +274,14 @@ void loop()
           Str[i] = ' ';
         }
         activated = 0;
-        Serial.print("contrasena incorrecta \n");
-        display.clearDisplay();
-        display.println("contrasena incorrecta");
-        display.display();
+        //Serial.print("contrasena incorrecta \n");
+        display.clrScr();
+        display.print("contrasena incorrecta",CENTER,0);
+        display.update();
         encender_rojo();
         lightStartTime = millis();
         delay(1000);
-        display.clearDisplay();
+        display.clrScr();
       }
     }
     // ingresar los numeros a la lista
@@ -284,9 +289,9 @@ void loop()
     customKey != 'C' && customKey != 'D' && customKey != '*' && customKey != '#')
     {
       Str[character] = customKey;
-      Serial.print(customKey);
-      display.println(Str);
-      display.display();
+      //Serial.print(customKey);
+      display.print(Str,0,8);
+      display.update();
       character++;
     }
   }
