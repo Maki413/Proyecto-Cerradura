@@ -27,7 +27,7 @@ uint8_t angle = 180; // Angulo inicial del servo
 char Str[5] = {' ', ' ', ' ', ' ','\0'}; //pass que varia
 int character = 0;     // Variable de orden del dígito
 int activated = 0;     // Estado de la cerradura -> 2=abierto, 0=cerrado
-char pass[4] = {'1','2','3','4'}; // pass fija
+char pass[5] = {'1','2','3','4','\0'}; // pass fija
 unsigned long lightStartTime = 0; // tiempo donde se encendio el led
 //fuentes---------------------------------
 extern uint8_t SmallFont[];
