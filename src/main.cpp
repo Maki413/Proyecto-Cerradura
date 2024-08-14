@@ -13,13 +13,8 @@
 #define LED_GREEN_PIN 27    // PIN del LED verde
 #define BUZZER_PIN 33       // PIN del buzzer
 #define LIGHT_DURATION 1000 // Duración de la luz y sonido en milisegundos (1 segundos)
-#define SCREEN_WIDTH 128    // OLED display width, en pixels
-#define SCREEN_HEIGHT 64    // OLED display height, en pixels
-#define OLED_RESET -1       // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
 OLED display (21,22);
-//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 ezButton button(BUTTON_PIN); // Asignar BUTTON_PIN
 Servo myservo;               // Crear objeto myservo
 // VARIABLES//
@@ -57,22 +52,11 @@ void setup()
   pinMode(LED_GREEN_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  // bucle inicio del display
-  /*if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
-  {
-    Serial.println(F("SSD1306 allocation failed"));
-    for (;;)
-      ;
-  }*/
   display.begin();
   display.setBrightness(207);
   display.clrScr();
   display.setFont(SmallFont);
   display.print("Hola Electronico", CENTER, 0);
-  /*display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.println("Hola electronico");*/
   delay(200);
   display.update();
   delay(2000);
@@ -85,8 +69,6 @@ void loop()
   if (activated == 0)
   {
     display.print("interfaz cerrado",0,0);
-    //display.setCursor(0, 0);
-    //display.println("Ingresa la contrasena");
     display.update();
   }
   button.loop(); // Bucle inicio del botón
@@ -99,7 +81,6 @@ void loop()
       angle = 0;
       activated = 2;
       character = 4;
-      //Serial.print("Puerta abierta \n");
       display.clrScr();
       display.print("bienvenido",CENTER,0);
       display.update();
@@ -118,12 +99,10 @@ void loop()
 
       encender_rojo();
       lightStartTime = millis();
-      //display.setCursor(0, 50);
       display.print("Cerrando...",0,56);
       display.update();
       delay(500);
       display.clrScr();
-      //Serial.print("Puerta cerrada \n");
       display.clrScr();
       break;
 
@@ -161,7 +140,6 @@ void loop()
       {
         Str[i] = ' ';
       }
-      //Serial.print("borrar y cerrar \n");
     }
     // Cambiar pass al presionar "C"
     else if (customKey == 'C' && character == 4)
@@ -169,16 +147,13 @@ void loop()
       // Contraseña correcta
       if (Str[0] == pass[0] && Str[1] == pass[1] && Str[2] == pass[2] && Str[3] == pass[3])
       {
-        //Serial.print("insertar nueva contraseña\n");
         char nuevopass[5] = {' ',' ',' ',' ','\0'}; // Añadido tamaño 5 para incluir el carácter nulo '\0'
         int i = 0;
         display.clrScr();
         while (i < 5)
         {
           char customKey = customKeypad.getKey();
-          //display.setCursor(0, 0);
           display.print("Ingresa la nueva contrasena",0,0);
-          //display.println("contrasena");
           display.update();
           if (customKey)
           {
@@ -201,7 +176,6 @@ void loop()
               {
                 pass[j] = nuevopass[j];
               }
-              //Serial.print("contrasena actualizada\n");
               display.clrScr();
               display.print("actualizada",CENTER,0);
               display.update();
@@ -223,7 +197,6 @@ void loop()
               i++;
               display.print(nuevopass,0,8);
               display.update();
-              //Serial.print(customKey);
             }
           }
         }
@@ -237,7 +210,6 @@ void loop()
           Str[i] = ' ';
         }
         activated = 0;
-        //Serial.print("contrasena incorrecta, vuelve intentar \n");
         display.clrScr();
         display.print("vuelve intentar",CENTER,0);
         display.update();
@@ -258,7 +230,6 @@ void loop()
         angle = 0;
         myservo.write(angle);
         activated = 2;
-        //Serial.print("contrasena correcta, abierto \n");
         display.clrScr();
         display.print("bienvenido",CENTER,0);
         display.update();
@@ -274,7 +245,6 @@ void loop()
           Str[i] = ' ';
         }
         activated = 0;
-        //Serial.print("contrasena incorrecta \n");
         display.clrScr();
         display.print("contrasena incorrecta",CENTER,0);
         display.update();
@@ -289,7 +259,6 @@ void loop()
     customKey != 'C' && customKey != 'D' && customKey != '*' && customKey != '#')
     {
       Str[character] = customKey;
-      //Serial.print(customKey);
       display.print(Str,0,8);
       display.update();
       character++;
