@@ -108,7 +108,7 @@ void loop()
       {
         Str[i] = ' ';
       }
-      
+
       encender_rojo();
       lightStartTime = millis();
       display.setCursor(0, 50);
@@ -142,6 +142,8 @@ void loop()
       {
       display.println("Cerrando...");
       }
+      encender_rojo();
+      lightStartTime = millis();
       display.display();
       delay(500);
       display.clearDisplay();
@@ -153,8 +155,7 @@ void loop()
         Str[i] = ' ';
       }
       Serial.print("borrar y cerrar \n");
-      encender_rojo();
-      lightStartTime = millis();
+
     }
     // Cambiar pass al presionar "C"
     else if (customKey == 'C' && character == 4)
