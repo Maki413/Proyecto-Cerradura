@@ -13,3 +13,4 @@ void encender_verde()
   digitalWrite(27, LOW); // Enciende la luz verde
   digitalWrite(33, HIGH);    // Enciende el buzzer 
 }
+
