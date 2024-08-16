@@ -5,6 +5,8 @@
 
 extern uint8_t interfazCerrada PROGMEM[];
 extern uint8_t logoFausti PROGMEM[];
+extern uint8_t candado PROGMEM[];
 void encender_rojo();
 void encender_verde();
+void dibujarInterfazCerrada();
 #endif

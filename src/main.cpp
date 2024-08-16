@@ -13,35 +13,39 @@
 #define BUZZER_PIN 33       // PIN del buzzer
 #define LIGHT_DURATION 1000 // Duración de la luz y sonido en milisegundos (1 segundos)
 
-OLED display (21,22);
-ezButton button(BUTTON_PIN); // Asignar BUTTON_PIN
-Servo myservo;               // Crear objeto myservo
-// VARIABLES//
+OLED display (21,22);        // objeto displayOLED
+ezButton button(BUTTON_PIN); // objeto Boton
+Servo myservo;               // objeto myservo
+
+// -----------------VARIABLES-----------------
 uint8_t angle = 180; // Angulo inicial del servo
-char Str[5] = {' ', ' ', ' ', ' ','\0'}; //pass que varia
-int character = 0;     // Variable de orden del dígito
-int activated = 0;     // Estado de la cerradura -> 2=abierto, 0=cerrado
-char pass[5] = {'1','2','3','4','\0'}; // pass fija
+char passVar[5] = {' ', ' ', ' ', ' ','\0'}; //pass activa
+int8_t character = 0;     // Variable de orden del dígito
+int8_t activated = 0;     // Estado de la cerradura -> 2=abierto, 0=cerrado
+char passSave[5] = {'1','2','3','4','\0'}; // pass guardada
 unsigned long lightStartTime = 0; // tiempo donde se encendio el led
 
-//fuentes---------------------------------
+//-------------------fuentes---------------
 extern uint8_t SmallFont[];
-// -------Configuración del Keypad---------
-const uint8_t ROWS = 4; // define numero de filas
-const uint8_t COLS = 4; // define numero de filas
+extern uint8_t TinyFont[];
 
-// define la distribucion de teclas
-const char keys[ROWS][COLS] = {
+// -------Configuración del Keypad---------
+const uint8_t FILAS = 4; // define numero de filas
+const uint8_t COLUMNAS = 4; // define numero de columnas
+
+// define la dipassVaribucion de teclas
+const char keys[FILAS][COLUMNAS] = {
     {'1', '2', '3', 'A'},
     {'4', '5', '6', 'B'},
     {'7', '8', '9', 'C'},
-    {'*', '0', '#', 'D'}};
+    {'*', '0', '#', 'D'}
+  };
 
-uint8_t colPins[COLS] = {2, 15, 26, 12}; // pines correspondientes a las filas
-uint8_t rowPins[ROWS] = {19, 18, 5, 4};  // pines correspondientes a las columnas
+uint8_t colPins[COLUMNAS] = {2, 15, 26, 12}; // pines correspondientes a las filas
+uint8_t filPins[FILAS] = {19, 18, 5, 4};  // pines correspondientes a las columnas
 
 // crea objeto con los prametros creados previamente
-Keypad customKeypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+Keypad customKeypad = Keypad(makeKeymap(keys), filPins, colPins, FILAS, COLUMNAS);
 
 void setup()
 {
@@ -57,8 +61,7 @@ void setup()
   display.setBrightness(207);
   display.clrScr();
   display.setFont(SmallFont);
-  display.drawBitmap(0,0,logoFausti,128,64);
-  //display.print("Hola Electronico", CENTER, 0);
+  display.drawBitmap(2,5,logoFausti,128,64);
   delay(200);
   display.update();
   delay(2000);
@@ -68,11 +71,10 @@ void setup()
 
 void loop()
 {
+  display.setFont(TinyFont);
   if (activated == 0)
   {
-    display.drawBitmap(0,0,interfazCerrada,128,8);
-    display.drawLine(0,10,128,10);
-    display.update();
+    dibujarInterfazCerrada();
   }
   button.loop(); // Bucle inicio del botón
   if (button.isPressed())
@@ -84,8 +86,9 @@ void loop()
       angle = 0;
       activated = 2;
       character = 4;
-      display.clrScr();
-      display.print("bienvenido",CENTER,0);
+      display.setFont(SmallFont);
+      display.print("BIENVENIDO",CENTER,23);
+      display.drawBitmap(0,0,candado,10,8);
       display.update();
       encender_verde();
       lightStartTime = millis();
@@ -97,12 +100,12 @@ void loop()
       character = 0;
       for (int i = 0; i < 4; i++)
       {
-        Str[i] = ' ';
+        passVar[i] = ' ';
       }
 
       encender_rojo();
       lightStartTime = millis();
-      display.print("Cerrando...",0,56);
+      display.print("Cerrando...",0,40);
       display.update();
       delay(500);
       display.clrScr();
@@ -121,19 +124,27 @@ void loop()
     // cerrar o limpiar con tecla "B"
     if (customKey == 'B' && character != 0)
     {
+      display.invertText(true);
+      display.print("     cerrar     ",65,51);
+      display.update();
+      delay(100);
+      display.invertText(false);
+      display.print("     cerrar     ",65,51);
+      display.update();
       angle = 180;
-      //display.setCursor(0, 50);
+      display.setFont(SmallFont);
       if (activated == 0)
       {
-      display.print("limpiando...",0,56);
+      display.print("Limpiando...",0,40);
+      display.update();
       }
       else if (activated == 2)
       {
-      display.print("Cerrando...",0,56);
+      display.print("Cerrando...",0,40);
+      display.update();
       }
       encender_rojo();
       lightStartTime = millis();
-      display.update();
       delay(500);
       display.clrScr();
       myservo.write(angle);
@@ -141,14 +152,21 @@ void loop()
       character = 0;
       for (int i = 0; i < 4; i++)
       {
-        Str[i] = ' ';
+        passVar[i] = ' ';
       }
     }
-    // Cambiar pass al presionar "C"
-    else if (customKey == 'C' && character == 4)
+    // Cambiar password al presionar "C"
+    else if (customKey == 'C' && character == 4 && activated==0)
     {
+      display.invertText(true);
+      display.print("    cambiar     ",0,58);
+      display.update();
+      delay(100);
+      display.invertText(false);
+      display.print("    cambiar     ",0,58);
+      display.update();
       // Contraseña correcta
-      if (Str[0] == pass[0] && Str[1] == pass[1] && Str[2] == pass[2] && Str[3] == pass[3])
+      if (passVar[0] == passSave[0] && passVar[1] == passSave[1] && passVar[2] == passSave[2] && passVar[3] == passSave[3])
       {
         char nuevopass[5] = {' ',' ',' ',' ','\0'}; // Añadido tamaño 5 para incluir el carácter nulo '\0'
         int i = 0;
@@ -156,49 +174,70 @@ void loop()
         while (i < 5)
         {
           char customKey = customKeypad.getKey();
-          display.print("Ingresa la nueva contrasena",0,0);
+          display.setFont(TinyFont);
+          dibujarInterfazCerrada();
+          display.print("Ingresa la nueva contrasena",0,13);
           display.update();
           if (customKey)
           {
             if (customKey == 'B')//B para volver
             {
+              display.invertText(true);
+              display.print("     cerrar     ",65,51);
+              display.update();
+              delay(100);
+              display.invertText(false);
+              display.print("     cerrar     ",65,51);
+              display.update();
               character = 0;
-              display.clrScr();
               for (int i = 0; i < 4; i++)
               {
-                Str[i] = ' ';
+                passVar[i] = ' ';
               }
+              display.setFont(SmallFont);
+              display.print("Cerrando...",0,40);
+              display.update();
               encender_verde();
               lightStartTime = millis();
+              delay(500);
+              display.clrScr();
               break;
             }
-            // asignar los valores de nuevopass a pass con tecla A
+            // asignar los valores de nuevopass a passSave con tecla A
             else if (customKey == 'A' && i == 4)
             {
-              for (int j = 0; j < 4; j++)//pasar la pass nueva a pass fija
+              display.invertText(true);
+              display.print("     abrir      ",0,51);
+              display.update();
+              delay(100);
+              display.invertText(false);
+              display.print("     abrir      ",0,51);
+              display.update();
+              for (int j = 0; j < 4; j++)//pasar la pass nueva a passSave
               {
-                pass[j] = nuevopass[j];
+                passSave[j] = nuevopass[j];
               }
-              display.clrScr();
-              display.print("actualizada",CENTER,0);
+              display.print("contrasena actualizada",0,40);
               display.update();
               character = 0;
               for (int k = 0; k < 4; k++)//borrar array de pass de teclado
               {
-                Str[k] = ' ';
+                passVar[k] = ' ';
               }
               encender_verde();
               lightStartTime = millis();
-              delay(1000);
+              delay(500);
               display.clrScr();
               break;
             }
             // asignando valores al array del nuevo pass
-            else if (i < 4)
+            else if (i < 4 && customKey != 'A' && customKey != 'B' && customKey != 'C' && 
+            customKey != 'D' && customKey != '*' && customKey != '#')
             {
               nuevopass[i] = customKey;
               i++;
-              display.print(nuevopass,0,8);
+              display.setFont(SmallFont);
+              display.print(nuevopass,CENTER,24);
               display.update();
             }
           }
@@ -210,32 +249,40 @@ void loop()
         character = 0;
         for (int i = 0; i < 4; i++)
         {
-          Str[i] = ' ';
+          passVar[i] = ' ';
         }
         activated = 0;
-        display.clrScr();
-        display.print("vuelve intentar",CENTER,0);
+        display.setFont(SmallFont);
+        display.print("vuelve intentar",0,40);
         display.update();
         encender_rojo();
         lightStartTime = millis();
-        delay(1000);
+        delay(500);
         display.clrScr();
       }
     }
     // Abrir puerta con tecla "A"
     else if (customKey == 'A' && character == 4 && activated==0)
     {
+      display.invertText(true);
+      display.print("     abrir      ",0,51);
+      display.update();
+      delay(100);
+      display.invertText(false);
+      display.print("     abrir      ",0,51);
+      display.update();
       // Iniciar la verificación al presionar A con 4 dígitos ingresados
-      if (Str[0] == pass[0] && Str[1] == pass[1] && Str[2] == pass[2] &&
-       Str[3] == pass[3])
+      if (passVar[0] == passSave[0] && passVar[1] == passSave[1] && passVar[2] == passSave[2] &&
+       passVar[3] == passSave[3])
       {
         // Contraseña correcta
         angle = 0;
         myservo.write(angle);
         activated = 2;
-        display.clrScr();
-        display.print("bienvenido",CENTER,0);
-        display.update();
+        display.setFont(SmallFont);
+        display.print("BIENVENIDO",CENTER,23);
+        display.drawBitmap(0,0,candado,10,8);
+        display.update();        
         encender_verde();
         lightStartTime = millis();
       }
@@ -245,10 +292,11 @@ void loop()
         character = 0;
         for (int i = 0; i < 4; i++)
         {
-          Str[i] = ' ';
+          passVar[i] = ' ';
         }
         activated = 0;
-        display.print("contrasena incorrecta",CENTER,40);
+        display.setFont(SmallFont);
+        display.print("contrasena incorrecta",0,40);
         display.update();
         encender_rojo();
         lightStartTime = millis();
@@ -260,8 +308,9 @@ void loop()
     else if (character < 4 && customKey != 'A' && customKey != 'B' && 
     customKey != 'C' && customKey != 'D' && customKey != '*' && customKey != '#')
     {
-      Str[character] = customKey;
-      display.print(Str,CENTER,24);
+      passVar[character] = customKey;
+      display.setFont(SmallFont);
+      display.print(passVar,CENTER,24);
       display.update();
       character++;
     }
