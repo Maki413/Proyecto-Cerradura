@@ -4,6 +4,7 @@
 #include <ESP32Servo.h>
 #include <ezButton.h>
 #include <Adafruit_GFX.h>
+#include <EEPROM.h>
 #include "mylib.h"
 
 #define BUTTON_PIN 25       // PIN DEL BOTON
@@ -22,7 +23,7 @@ uint8_t angle = 180; // Angulo inicial del servo
 char passVar[5] = {' ', ' ', ' ', ' ','\0'}; //pass activa
 int8_t character = 0;     // Variable de orden del dígito
 int8_t activated = 0;     // Estado de la cerradura -> 2=abierto, 0=cerrado
-char passSave[5] = {'1','2','3','4','\0'}; // pass guardada
+char passSaved[5] = {'1','2','3','4','\0'}; // pass guardada
 unsigned long lightStartTime = 0; // tiempo donde se encendio el led
 
 //-------------------fuentes---------------
@@ -49,6 +50,7 @@ Keypad customKeypad = Keypad(makeKeymap(keys), filPins, colPins, FILAS, COLUMNAS
 
 void setup()
 {
+  EEPROM.begin(512);
   Serial.begin(115200);
   button.setDebounceTime(0); // Delay antirebote, asignar un delay mayor genera errores
   myservo.attach(SERVO_PIN); // Enlaza myservo con el pin del servo
@@ -67,6 +69,34 @@ void setup()
   delay(2000);
   display.clrScr();
   myservo.write(angle); // Asigna el ángulo inicial a myservo
+  for (uint8_t k = 0; k < 4; k++) //bucle para leer la eeprom
+  {
+    passSaved[k] = EEPROM.read(k);
+  }
+  passSaved[4] = '\0';  // terminar con caracter nulo
+
+  // Verificar si los datos leídos son válidos (solo datos numéricos)
+  bool eepromCargada = true; //eeprom tiene la contraseña
+  
+  for (uint8_t k = 0; k < 4; k++)
+  {
+    if (passSaved[k] < '0' || passSaved[k] > '9') //datos invalidos
+    {
+      eepromCargada = false; //eeprom aun no tiene la contraseña
+      break;
+    }
+  }
+  // Si los datos no son válidos, inicializa `passSaved` con la contraseña predeterminada
+  if (!eepromCargada) 
+  {
+    strcpy(passSaved, "1234");//copiando la contraseña por defecto
+    for (uint8_t k = 0; k < 4; k++)//guardando la contraseña por defecto
+    {
+      EEPROM.write(k, passSaved[k]);
+    }
+    EEPROM.commit();
+  }
+  Serial.write(passSaved);
 }
 
 void loop()
@@ -121,6 +151,10 @@ void loop()
   char customKey = customKeypad.getKey(); // asignar tecla presionada a la variable customkey
   if (customKey)
   {
+    if (customKey=='*')
+    {
+      esp_restart();
+    }
     // cerrar o limpiar con tecla "B"
     if (customKey == 'B' && character != 0)
     {
@@ -166,7 +200,7 @@ void loop()
       display.print("    cambiar     ",0,58);
       display.update();
       // Contraseña correcta
-      if (passVar[0] == passSave[0] && passVar[1] == passSave[1] && passVar[2] == passSave[2] && passVar[3] == passSave[3])
+      if (passVar[0] == passSaved[0] && passVar[1] == passSaved[1] && passVar[2] == passSaved[2] && passVar[3] == passSaved[3])
       {
         char nuevopass[5] = {' ',' ',' ',' ','\0'}; // Añadido tamaño 5 para incluir el carácter nulo '\0'
         int i = 0;
@@ -203,7 +237,7 @@ void loop()
               display.clrScr();
               break;
             }
-            // asignar los valores de nuevopass a passSave con tecla A
+            // asignar los valores de nuevopass a passSaved con tecla A
             else if (customKey == 'A' && i == 4)
             {
               display.invertText(true);
@@ -213,10 +247,15 @@ void loop()
               display.invertText(false);
               display.print("     abrir      ",0,51);
               display.update();
-              for (int j = 0; j < 4; j++)//pasar la pass nueva a passSave
+              for (int j = 0; j < 4; j++)//pasar la pass nueva a passSaved
               {
-                passSave[j] = nuevopass[j];
+                passSaved[j] = nuevopass[j];
               }
+              for(int8_t z=0; z<5; z++ )
+              {
+                EEPROM.write(z,passSaved[z]);
+              }
+              EEPROM.commit();
               display.print("contrasena actualizada",0,40);
               display.update();
               character = 0;
@@ -272,8 +311,8 @@ void loop()
       display.print("     abrir      ",0,51);
       display.update();
       // Iniciar la verificación al presionar A con 4 dígitos ingresados
-      if (passVar[0] == passSave[0] && passVar[1] == passSave[1] && passVar[2] == passSave[2] &&
-       passVar[3] == passSave[3])
+      if (passVar[0] == passSaved[0] && passVar[1] == passSaved[1] && passVar[2] == passSaved[2] &&
+       passVar[3] == passSaved[3])
       {
         // Contraseña correcta
         angle = 0;
